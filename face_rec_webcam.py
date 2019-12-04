@@ -169,6 +169,17 @@ def AddUnknownAsContact(unknown_id_name):
         unknown_ppl_counters[unknown_id_name] = - NEG_MULTI_OF_SEEN_THRES * STARING_THRESHOLD
         print("No one is added to your contact.")
 
+
+def slientRecord(face_image, face_encoding, unknown_id):
+    # Hard code for now
+    cache_directory = "./cache"
+
+    # save image with unknown_id
+    cv2.imwrite("{}.jpg".format(unknown_id), face_image)
+
+    # short recording for 3sec.
+
+
 #------------------------------------------------------------------------------
 # Face Recongition Function
 #------------------------------------------------------------------------------
@@ -208,6 +219,7 @@ def FaceRecognitionWebcam():
         if process_this_frame:
             # Find all the faces and face encodings in the current frame of video
             face_locations = face_recognition.face_locations(rgb_small_frame)
+            print("face_locations: {}".format(face_locations))
             face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
             face_names = []
@@ -231,8 +243,7 @@ def FaceRecognitionWebcam():
                         #TODO: we should associate staring counter with each unknown person in DB
                         unknown_name = RecordUnknownPerson(face_encoding, UNKNOWN_PERSON_IDX)
 
-                        print("Recognized new unknown person: " + unknown_name)
-                        print("Staring counter is: " + str(unknown_ppl_counters[unknown_name]))
+                        print("Recognized new unknown person: {} with counter: {}".format(unknown_name, unknown_ppl_counters[unknown_name]))
 
                     # It is possible that matched person is actually unknown in database.
                     # Handle this case with special care:
@@ -246,7 +257,12 @@ def FaceRecognitionWebcam():
                         # i.e. might be having a conversation with
                         # prompt to add this person as a contact
                         if unknown_ppl_counters[name] > STARING_THRESHOLD:
-                            AddUnknownAsContact(name)
+
+                            #AddUnknownAsContact(name)
+                            y1, y2, x1, x2 = face_locations[0][0], face_locations[0][1], face_locations[0][2], face_locations[0][3]
+                            face_img = rgb_small_frame[face_locations[0]]
+                            slientRecord(face_img, face_encoding, name)
+                            print("capturing unknown contact into database")
 
                     # Audio Notfication
                     # TODO: set up a timer for voice notification so we don't keep repeating ourselves
@@ -254,8 +270,8 @@ def FaceRecognitionWebcam():
                         NotifyNameAndInfo(name, best_match_index)
 
                     # Feature to add new person or annotation
-                    if "unknown" not in name.lower() and name != last_seen_person:
-                        OptionForNewAnnotation(best_match_index, name)
+                    # if "unknown" not in name.lower() and name != last_seen_person:
+                    #     OptionForNewAnnotation(best_match_index, name)
 
                     # TODO: option to pull out all of this person's pictures
 
@@ -263,6 +279,7 @@ def FaceRecognitionWebcam():
                     last_seen_person = name
 
                 face_names.append(name)
+                break
 
         # Display the results
         if CV_SHOW_IMAGE_FLAG:
