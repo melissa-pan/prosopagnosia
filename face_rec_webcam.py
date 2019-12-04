@@ -49,7 +49,7 @@ ANNOTATION_PATH = "./known_annotation"
 
 # Variables for adding unknown person
 UNKNOWN_PERSON_IDX = 1
-STARING_THRESHOLD = 2       # Numbers of times seen unknown person to add into contact
+STARING_THRESHOLD = 1       # Numbers of times seen unknown person to add into contact
 KNOWN_FACE_ENCODINGS = []
 KNOWN_FACE_NAMES = []
 
@@ -68,7 +68,7 @@ speech_engn = pyttsx3.init()
 notify_perct_thresh = 0.3
 
 # speech recognition by obtaining audio from the microphone
-speech_recognizer = sr.Recognizer()
+#speech_recognizer = sr.Recognizer()
 
 #------------------------------------------------------------------------------
 # Function to load Face and annotation records
@@ -175,7 +175,10 @@ def slientRecord(face_image, face_encoding, unknown_id):
     cache_directory = "./cache"
 
     # save image with unknown_id
+    #cv2.imshow('image',face_image)
     cv2.imwrite("{}.jpg".format(unknown_id), face_image)
+    
+    print("capturing unknown contact into database")
 
     # short recording for 3sec.
 
@@ -219,7 +222,6 @@ def FaceRecognitionWebcam():
         if process_this_frame:
             # Find all the faces and face encodings in the current frame of video
             face_locations = face_recognition.face_locations(rgb_small_frame)
-            print("face_locations: {}".format(face_locations))
             face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
             face_names = []
@@ -260,9 +262,9 @@ def FaceRecognitionWebcam():
 
                             #AddUnknownAsContact(name)
                             y1, y2, x1, x2 = face_locations[0][0], face_locations[0][1], face_locations[0][2], face_locations[0][3]
-                            face_img = rgb_small_frame[face_locations[0]]
+                            face_img = rgb_small_frame[y1:y2,x1:x2]
+                            print("face_image: {}, dimension: {} {} {} {}".format(face_img, y1, y2,x1,x2))
                             slientRecord(face_img, face_encoding, name)
-                            print("capturing unknown contact into database")
 
                     # Audio Notfication
                     # TODO: set up a timer for voice notification so we don't keep repeating ourselves
