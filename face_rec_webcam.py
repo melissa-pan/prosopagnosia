@@ -33,6 +33,8 @@ import speech_recognition as sr
 from os import path
 import math 
 from PIL import Image
+import sys, select
+import shutil
 
 #------------------------------------------------------------------------------
 # Constants / Global Declaration
@@ -51,6 +53,8 @@ fixation = (0, 0)
 
 # Default path for adding new annotation file
 ANNOTATION_PATH = "./known_annotation"
+NUMANNOTATION = 2
+
 
 # Variables for adding unknown person
 UNKNOWN_PERSON_IDX = 1
@@ -279,10 +283,8 @@ def FaceRecognitionWebcam():
                             print("face_image: {}, dimension: {} {} {} {}".format(face_img, top, right, bottom, left))
                             slientRecord(face_img, face_encoding, name)
 
-                    # Audio Notfication
-                    # TODO: set up a timer for voice notification so we don't keep repeating ourselves
-                    if PYTTSX3_OUTPUT_AUDIO:
-                        NotifyNameAndInfo(name, best_match_index)
+                    # Prompt information to user
+                    NotifyNameAndInfo(name, best_match_index)
 
                     # Feature to add new person or annotation
                     # if "unknown" not in name.lower() and name != last_seen_person:
@@ -350,11 +352,23 @@ def NotifyNameAndInfo(name, idx):
         annotations = ReadAnnotationFromId(idx)
 
     # Notify name
-    VoiceNotification(notification)
+    if PYTTSX3_OUTPUT_AUDIO:
+        VoiceNotification(notification)
+    else:
+        print("NOTFIY: {}".format(notification))
 
     # Notify annotations
+    counter = 0
     for a in annotations:
-        VoiceNotification(a)
+        if PYTTSX3_OUTPUT_AUDIO:
+            VoiceNotification(a)
+        else:
+            print("ANNOTATION: {}".format(a))
+
+        # only read out certain number of annotations
+        if counter > NUMANNOTATION:
+            break
+    print("\n")
 
 #------------------------------------------------------------------------------
 # Speech Recognition Functions
@@ -424,6 +438,28 @@ def AnnotateById(idx, annotations):
         print ("Warning: Unable to open & write annotation record for ID:{}".format(idx))
         pass
 
+def AnnotateByName(name, annotations):
+    # Get matching annotation file from database
+    af, found = GetAnnotationByName(name)
+
+    try:
+        f = open(af, "a+")
+
+        # Create new file if annotation not found
+        if not found:
+            af = "{}/{}.txt".format(ANNOTATION_PATH, name)
+            f = open(af, "w+") 
+
+        # Append new annotation line by line
+        if annotations is not None:
+            f.write(annotations + '\n')
+
+        # close the file after writing the lines.
+        f.close()
+    except IOError:
+        print ("Warning: Unable to open & write annotation record for ID:{}".format(idx))
+        pass
+
 def OptionForNewAnnotation(idx, name):
     """Prompt User to add new annotation if needed"""
     annotation_request = "Would you like to add note for " + name + "?"
@@ -462,6 +498,13 @@ def GetAnnotationByFRId(idx):
     else:
         return ('No such file', False)
 
+def GetAnnotationByName(name):
+    # hardcode for now 
+    personal_annotation = ANNOTATION_PATH + "/"+ str(name) + ".txt"
+    if os.path.exists(personal_annotation) == True:
+        return (personal_annotation, True)
+    else:
+        return ('No such file', False)
 # def updateAnnotationByFR(name,path):
 # def idToName(id):
 # def nameToId(name):
@@ -484,6 +527,83 @@ def IsPositiveResponse(response):
     else:
         return False
 
+
+#------------------------------------------------------------------------------
+# Add New Contact or Annotation Logic
+#------------------------------------------------------------------------------
+def TimedInputPrompt(t, q):
+    print ("{} seconds time out".format(t))
+    print (q)
+
+    i, o, e = select.select( [sys.stdin], [], [], t )
+
+    if i:
+        return sys.stdin.readline().strip()
+    else:
+        return ""
+
+def SaveUnknownFaces():
+    print("\n\nPlease manage unknown person you have seen today")
+
+    # Loop over unknown faces
+    cap_img = glob.glob1('./cache',"*.jpg")
+    num_cap_img = len(cap_img)
+
+    if num_cap_img != 0:
+        answer = TimedInputPrompt(5, "\nWould you like to add {} captured unknown people into you contact? [y/n]\n".format(num_cap_img))
+
+        if "y" in answer.lower():
+            for im in cap_img:
+                im_p = Image.open('./cache/{}'.format(im))
+                im_p.show()
+                print("Please enter the name for this person if you want to save to contact, else enter nothing")
+                name = input()
+                if name == '':
+                    # remove cache photo
+                    os.remove('./cache/{}'.format(im))
+                    print("{} removed from cache".format(im))
+                else:
+                    shutil.move('./cache/{}'.format(im), './known_ppl/{}.jpg'.format(name))
+
+        # cleanup remaining cache files
+        cap_img = glob.glob1('./cache',"*.jpg")
+        for f in cap_img:
+            os.remove('./cache/{}'.format(f))
+
+    # Wait to ask to add annotation
+    flag = True
+    ctr = 0
+    while flag:
+        answer = TimedInputPrompt(5, "\nWould you like to add annotation for people in the contact? [y/n]")
+        if "y" in answer.lower():
+            kwn_img = glob.glob1('./known_ppl',"*.jpg")
+
+            print("Please enter name of the contact: ")
+            name = input()
+
+            match = [f for f in kwn_img if name.lower() in f.lower()]
+
+            if len(match) == 0:
+                print("{} is not found in the contact, please enter another name".format(name))
+            elif len(match) == 1:
+                print("Please enter annotation for the contact:\n")
+                annotation = input()
+                base = os.path.basename(match[0])
+                fname = os.path.splitext(base)[0]
+                AnnotateByName(fname, annotation)
+                ctr = 0
+            else:
+                print("More than one contact is found with this name, please enter the full name:\n{}".format(match))
+        else:
+            flag = False
+
+        ctr += 1
+
+        if ctr > 3:
+            break
+    print("\n\nProgram existing now, thanks for using :)")
+
+
 #------------------------------------------------------------------------------
 # Cleanup Functions
 #------------------------------------------------------------------------------
@@ -502,5 +622,7 @@ if __name__ == "__main__":
         SetupSpeechEngine()
         FaceRecognitionWebcam()
         GeneralCleanup()
+    except KeyboardInterrupt:
+        SaveUnknownFaces()
     except Exception as e:
         raise e
