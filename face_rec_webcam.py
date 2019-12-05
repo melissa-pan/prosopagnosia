@@ -32,12 +32,13 @@ import glob
 import speech_recognition as sr
 from os import path
 import math 
+from PIL import Image
 
 #------------------------------------------------------------------------------
 # Constants / Global Declaration
 #------------------------------------------------------------------------------
 # Flag for showing video stream
-CV_SHOW_IMAGE_FLAG = True # Keep false until cv2 crash is resolved
+CV_SHOW_IMAGE_FLAG = False # Keep false until cv2 crash is resolved
 # Flag for outputing audio notification
 # *TODO*: 
 #   The problem crush currently when both video and audio output is enable!!!!
@@ -180,8 +181,10 @@ def slientRecord(face_image, face_encoding, unknown_id):
 
     # save image with unknown_id
     #cv2.imshow('image',face_image)
-    cv2.imwrite("{}.jpg".format(unknown_id), face_image)
-    
+    #cv2.imwrite("{}.jpg".format(unknown_id), face_image)
+    pil_image = Image.fromarray(face_image)
+    pil_image.save("{}/{}.jpg".format(cache_directory,unknown_id))
+
     print("capturing unknown contact into database")
 
     # short recording for 3sec.
@@ -271,9 +274,9 @@ def FaceRecognitionWebcam():
                         if unknown_ppl_counters[name] > STARING_THRESHOLD:
 
                             #AddUnknownAsContact(name)
-                            y1, y2, x1, x2 = face_locations[0][0], face_locations[0][1], face_locations[0][2], face_locations[0][3]
-                            face_img = rgb_small_frame[y1:y2,x1:x2]
-                            print("face_image: {}, dimension: {} {} {} {}".format(face_img, y1, y2,x1,x2))
+                            top, right, bottom, left = face_locations[0][0], face_locations[0][1], face_locations[0][2], face_locations[0][3]
+                            face_img = rgb_small_frame[top:bottom, left:right]
+                            print("face_image: {}, dimension: {} {} {} {}".format(face_img, top, right, bottom, left))
                             slientRecord(face_img, face_encoding, name)
 
                     # Audio Notfication
