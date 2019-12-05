@@ -542,7 +542,7 @@ def TimedInputPrompt(t, q):
     else:
         return ""
 
-def SaveUnknownFaces():
+def ConsoleSaveUnknownFaces():
     print("\n\nPlease manage unknown person you have seen today")
 
     # Loop over unknown faces
@@ -550,7 +550,7 @@ def SaveUnknownFaces():
     num_cap_img = len(cap_img)
 
     if num_cap_img != 0:
-        answer = TimedInputPrompt(5, "\nWould you like to add {} captured unknown people into you contact? [y/n]\n".format(num_cap_img))
+        answer = TimedInputPrompt(5, "Would you like to add {} captured unknown people into you contact? [y/n]\n".format(num_cap_img))
 
         if "y" in answer.lower():
             for im in cap_img:
@@ -623,6 +623,6 @@ if __name__ == "__main__":
         FaceRecognitionWebcam()
         GeneralCleanup()
     except KeyboardInterrupt:
-        SaveUnknownFaces()
+        ConsoleSaveUnknownFaces()
     except Exception as e:
         raise e
