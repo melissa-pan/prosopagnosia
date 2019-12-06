@@ -35,6 +35,7 @@ import math
 from PIL import Image
 import sys, select
 import shutil
+import socket
 
 from build_index import build_index
 from upload_file import upload_file
@@ -51,8 +52,11 @@ CV_SHOW_IMAGE_FLAG = False # Keep false until cv2 crash is resolved
 #   can be change to specific value when the bug is fixed.
 PYTTSX3_OUTPUT_AUDIO = not CV_SHOW_IMAGE_FLAG
 
-SINGLE_DETACTION = True
-fixation = (0, 0)
+# Connection to eye tracker
+# SINGLE_DETACTION = True
+# fixation = (0, 0)
+# HOST = '127.0.0.1'
+# PORT =
 
 # Default path for adding new annotation file
 ANNOTATION_PATH = "./known_annotation"
@@ -646,6 +650,18 @@ def RemoveUnknownInDB():
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     try:
+
+        # while(True):
+        #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        #         s.connect((HOST, PORT))
+        #         # s.sendall((b'Hello, world'))
+        #         while(True):
+        #             data = s.recv(1024)
+
+        #             print('Received', repr(data))
+        #         coord = [int(s) for s in str.split() if s.isdigit()] 
+        #         fixation = (coord[0], coord[1])    
+    
         SetupSpeechEngine()
         RemoveUnknownInDB()
         FaceRecognitionWebcam()
