@@ -36,6 +36,8 @@ from PIL import Image
 import sys, select
 import shutil
 import socket
+import sounddevice as sd
+import soundfile as sf
 
 import build_index
 import upload_file
@@ -207,7 +209,10 @@ def slientRecord(face_image, face_encoding, unknown_id):
     print("capturing unknown contact into database")
 
     # short recording for 3sec.
-
+    fs = 44100 # sampling frequency
+    duration = 3 # seconds
+    recording = sd.rec(int(duration * fs), samplerate=fs, channels=2) # save recroding
+    sf.write("{}/{}.wav".format(cache_directory,unknown_id), recording, fs) # write sound file
 
 #------------------------------------------------------------------------------
 # Face Recongition Function
