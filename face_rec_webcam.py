@@ -37,8 +37,8 @@ import sys, select
 import shutil
 import socket
 
-from build_index import build_index
-from upload_file import upload_file
+import build_index
+import upload_file
 
 #------------------------------------------------------------------------------
 # Constants / Global Declaration
@@ -663,6 +663,7 @@ if __name__ == "__main__":
         #         fixation = (coord[0], coord[1])    
     
         SetupSpeechEngine()
+        download_file()
         RemoveUnknownInDB()
         FaceRecognitionWebcam()
         GeneralCleanup()
