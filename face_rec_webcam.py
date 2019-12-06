@@ -622,12 +622,19 @@ def GeneralCleanup():
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     try:
+        while(True):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((HOST, PORT))
+                # s.sendall((b'Hello, world'))
+                while(True):
+                    data = s.recv(1024)
+
+                    print('Received', repr(data))
+                coord = [int(s) for s in str.split() if s.isdigit()] 
+                fixation = (coord[0], coord[1])    
+    
         SetupSpeechEngine()
         FaceRecognitionWebcam()
         GeneralCleanup()
-    except KeyboardInterrupt:
-        #ConsoleSaveUnknownFaces()
-        build_index()
-        upload_file()
     except Exception as e:
         raise e
