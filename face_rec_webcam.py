@@ -53,10 +53,11 @@ CV_SHOW_IMAGE_FLAG = False # Keep false until cv2 crash is resolved
 PYTTSX3_OUTPUT_AUDIO = not CV_SHOW_IMAGE_FLAG
 
 # Connection to eye tracker
-# SINGLE_DETACTION = True
-# fixation = (0, 0)
-# HOST = '127.0.0.1'
-# PORT =
+SINGLE_DETACTION = True
+fixation = (0, 0)
+HOST = '127.0.0.1'
+PORT = ''
+EYE_SOCKET = None
 
 # Default path for adding new annotation file
 ANNOTATION_PATH = "./known_annotation"
@@ -250,6 +251,7 @@ def FaceRecognitionWebcam():
 
             if SINGLE_DETACTION:
                 if len(face_locations) > 1:
+                    EyePosition()
                     index = getFaceIndex(face_locations)
                     face_encodings = face_recognition.face_encodings(rgb_small_frame, [face_locations[index]])
                 else:
@@ -646,11 +648,26 @@ def RemoveUnknownInDB():
             os.remove('{}/{}'.format(db_path,f))
 
 #------------------------------------------------------------------------------
+# Connection to Eye Tracker
+#------------------------------------------------------------------------------
+def SetupEyeTracker():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        EYE_SOCKET = s
+
+def EyePosition():
+    data = EYE_SOCKET.recv(1024)
+    print('Received', repr(data))
+    coord = [int(EYE_SOCKET) for EYE_SOCKET in str.split() if EYE_SOCKET.isdigit()]
+    fixation = (coord[0], coord[1])
+
+    return fixation
+#------------------------------------------------------------------------------
 # Run Program
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     try:
-
+        
         # while(True):
         #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         #         s.connect((HOST, PORT))
@@ -660,8 +677,8 @@ if __name__ == "__main__":
 
         #             print('Received', repr(data))
         #         coord = [int(s) for s in str.split() if s.isdigit()] 
-        #         fixation = (coord[0], coord[1])    
-    
+        #         fixation = (coord[0], coord[1])  
+        SetupEyeTracker()
         SetupSpeechEngine()
         download_file()
         RemoveUnknownInDB()
