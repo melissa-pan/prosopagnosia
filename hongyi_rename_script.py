@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request
+import json
 
 def rename_file(name_dict,path):
     for key in name_dict:
@@ -14,11 +15,18 @@ def rename_file(name_dict,path):
             print("rename fail: "+path+key)
             print(e)
 
+def build_dict_mapping(json_inMem):
+    f = open("dictionary_mapping","w")
+    f.write(json.dumps(json_inMem))
+    f.close()
+
 app = Flask(__name__)
 @app.route('/',methods=['POST'])
 def get_json_dict():
     data = request.json
     rename_file(data, "")
-    return "Good!"
+    build_dict_mapping(data)
+    return ("good")
+
 if __name__ == "__main__":
     app.run("localhost", "5000",debug=True)
