@@ -5,10 +5,10 @@ import numpy as np
 # Load the jpg file into a numpy array
 unknown_image = face_recognition.load_image_file("./unknown_pics/unknown.jpg")
 
-angel_image = face_recognition.load_image_file("./known_ppl/Angel Gao.jpg")
+angel_image = face_recognition.load_image_file("./face_database/Angel Gao.jpg")
 angel_face_encoding = face_recognition.face_encodings(angel_image)[0]
 
-melissa_image = face_recognition.load_image_file("./known_ppl/Melissa Pan.jpg")
+melissa_image = face_recognition.load_image_file("./face_database/Melissa Pan.jpg")
 melissa_face_encoding = face_recognition.face_encodings(melissa_image)[0]
 
 known_face_encodings = [

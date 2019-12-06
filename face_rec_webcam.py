@@ -36,11 +36,14 @@ from PIL import Image
 import sys, select
 import shutil
 
+from build_index import build_index
+from upload_file import upload_file
+
 #------------------------------------------------------------------------------
 # Constants / Global Declaration
 #------------------------------------------------------------------------------
 # Flag for showing video stream
-CV_SHOW_IMAGE_FLAG = False # Keep false until cv2 crash is resolved
+CV_SHOW_IMAGE_FLAG = True # Keep false until cv2 crash is resolved
 # Flag for outputing audio notification
 # *TODO*: 
 #   The problem crush currently when both video and audio output is enable!!!!
@@ -70,7 +73,7 @@ unknown_ppl_counters = {}
 # Environment Setup
 #------------------------------------------------------------------------------
 # Camera source - Get a reference to webcam #0 (the default one)
-video_capture = cv2.VideoCapture(0)
+video_capture = cv2.VideoCapture(1)
 
 # Audio source - Initiate speech engine
 speech_engn = pyttsx3.init()
@@ -202,7 +205,7 @@ def FaceRecognitionWebcam():
     # if yes, load Face and annotation records from database and save them
     # if no, then do not need to record these people again
         # load pictures of known people from known_ppl_path
-    known_ppl_pics = glob.glob("./known_ppl/*.jpg")
+    known_ppl_pics = glob.glob("./face_database/*.jpg")
     LoadFaceAndEncoding(known_ppl_pics)
 
     # Initialize some variables
@@ -563,7 +566,7 @@ def ConsoleSaveUnknownFaces():
                     os.remove('./cache/{}'.format(im))
                     print("{} removed from cache".format(im))
                 else:
-                    shutil.move('./cache/{}'.format(im), './known_ppl/{}.jpg'.format(name))
+                    shutil.move('./cache/{}'.format(im), './face_database/{}.jpg'.format(name))
 
         # cleanup remaining cache files
         cap_img = glob.glob1('./cache',"*.jpg")
@@ -576,7 +579,7 @@ def ConsoleSaveUnknownFaces():
     while flag:
         answer = TimedInputPrompt(5, "\nWould you like to add annotation for people in the contact? [y/n]")
         if "y" in answer.lower():
-            kwn_img = glob.glob1('./known_ppl',"*.jpg")
+            kwn_img = glob.glob1('./face_database',"*.jpg")
 
             print("Please enter name of the contact: ")
             name = input()
@@ -623,6 +626,8 @@ if __name__ == "__main__":
         FaceRecognitionWebcam()
         GeneralCleanup()
     except KeyboardInterrupt:
-        ConsoleSaveUnknownFaces()
+        #ConsoleSaveUnknownFaces()
+        build_index()
+        upload_file()
     except Exception as e:
         raise e
