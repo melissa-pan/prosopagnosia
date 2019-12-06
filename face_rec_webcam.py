@@ -35,6 +35,7 @@ import math
 from PIL import Image
 import sys, select
 import shutil
+import socket
 
 from build_index import build_index
 from upload_file import upload_file
@@ -43,7 +44,7 @@ from upload_file import upload_file
 # Constants / Global Declaration
 #------------------------------------------------------------------------------
 # Flag for showing video stream
-CV_SHOW_IMAGE_FLAG = True # Keep false until cv2 crash is resolved
+CV_SHOW_IMAGE_FLAG = False # Keep false until cv2 crash is resolved
 # Flag for outputing audio notification
 # *TODO*: 
 #   The problem crush currently when both video and audio output is enable!!!!
@@ -51,8 +52,11 @@ CV_SHOW_IMAGE_FLAG = True # Keep false until cv2 crash is resolved
 #   can be change to specific value when the bug is fixed.
 PYTTSX3_OUTPUT_AUDIO = not CV_SHOW_IMAGE_FLAG
 
-SINGLE_DETACTION = True
-fixation = (0, 0)
+# Connection to eye tracker
+# SINGLE_DETACTION = True
+# fixation = (0, 0)
+# HOST = '127.0.0.1'
+# PORT =
 
 # Default path for adding new annotation file
 ANNOTATION_PATH = "./known_annotation"
@@ -69,11 +73,14 @@ KNOWN_FACE_NAMES = []
 #   format: {'name':'# seen'}
 unknown_ppl_counters = {}
 
+# Determine console or pi
+WITHMONITOR = False
+
 #------------------------------------------------------------------------------
 # Environment Setup
 #------------------------------------------------------------------------------
 # Camera source - Get a reference to webcam #0 (the default one)
-video_capture = cv2.VideoCapture(1)
+video_capture = cv2.VideoCapture(0)
 
 # Audio source - Initiate speech engine
 speech_engn = pyttsx3.init()
@@ -94,14 +101,18 @@ def LoadFaceAndEncoding(known_ppl_pics):
 
         # get this person's face encoding
         image = face_recognition.load_image_file(known_person_pic)
-        face_encoding = face_recognition.face_encodings(image)[0]
+        #print(face_recognition.face_encodings(image))
+        if len(face_recognition.face_encodings(image)) != 0:
+            face_encoding = face_recognition.face_encodings(image)[0]
         
-        #TODO: save this person's name and face encoding in DB!
-        # save this person's name and face encoding
-        KNOWN_FACE_NAMES.append(person_name)
-        KNOWN_FACE_ENCODINGS.append(face_encoding)
+            #TODO: save this person's name and face encoding in DB!
+            # save this person's name and face encoding
+            KNOWN_FACE_NAMES.append(person_name)
+            KNOWN_FACE_ENCODINGS.append(face_encoding)
 
-        print("I can recognize " + person_name + " now.")
+            print("I can recognize " + person_name + " now.")
+        else:
+            print("Unable to detect face in {}".format(known_person_pic))
 
 def SetupSpeechEngine():
     rate = speech_engn.getProperty('rate')
@@ -223,8 +234,8 @@ def FaceRecognitionWebcam():
         # Grab a single frame of video
         ret, frame = video_capture.read()
 
-        # Resize frame of video to 1/4 size for faster face recognition processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+        # Resize frame of video to 1/2 size for faster face recognition processing
+        small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color 
         # (which face_recognition uses)
@@ -617,24 +628,50 @@ def GeneralCleanup():
     video_capture.release()
     cv2.destroyAllWindows()
 
+def MoveCacheToDB():
+    cache_path = './cache'
+    db_path = './face_database'
+
+    files = os.listdir(cache_path)
+
+    for f in files:
+        shutil.move('{}/{}'.format(cache_path, f), db_path)
+
+def RemoveUnknownInDB():
+    db_path = './face_database'
+    files = os.listdir(db_path)
+
+    for f in files:
+        if 'unknown_' in f.lower():
+            os.remove('{}/{}'.format(db_path,f))
+
 #------------------------------------------------------------------------------
 # Run Program
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     try:
-        while(True):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((HOST, PORT))
-                # s.sendall((b'Hello, world'))
-                while(True):
-                    data = s.recv(1024)
 
-                    print('Received', repr(data))
-                coord = [int(s) for s in str.split() if s.isdigit()] 
-                fixation = (coord[0], coord[1])    
+        # while(True):
+        #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        #         s.connect((HOST, PORT))
+        #         # s.sendall((b'Hello, world'))
+        #         while(True):
+        #             data = s.recv(1024)
+
+        #             print('Received', repr(data))
+        #         coord = [int(s) for s in str.split() if s.isdigit()] 
+        #         fixation = (coord[0], coord[1])    
     
         SetupSpeechEngine()
+        RemoveUnknownInDB()
         FaceRecognitionWebcam()
         GeneralCleanup()
+    except KeyboardInterrupt:
+        if WITHMONITOR:
+            ConsoleSaveUnknownFaces()
+
+        MoveCacheToDB()
+        build_index()
+        upload_file()
     except Exception as e:
         raise e
