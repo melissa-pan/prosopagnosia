@@ -40,7 +40,7 @@ import socket
 from build_index import build_index
 from connect_fs import upload_file
 from connect_fs import download_file
-
+from rotateFace import rotate_image
 #------------------------------------------------------------------------------
 # Constants / Global Declaration
 #------------------------------------------------------------------------------
@@ -710,7 +710,8 @@ if __name__ == "__main__":
         SetupEyeTracker()
         SetupSpeechEngine()
         # rotate image
-        # download_file()
+        rotate_image()
+        #download_file()
         #RemoveUnknownInDB()
         FaceRecognitionWebcam()
         GeneralCleanup()
@@ -720,6 +721,7 @@ if __name__ == "__main__":
 
         MoveCacheToDB()
         # ******rotate image
+        rotate_image()
         build_index()
         upload_file()
     except Exception as e:
