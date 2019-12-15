@@ -1,12 +1,15 @@
-
-
+import os
 from PIL import Image
+
+directory = "./face_database/"
 def rotate_image():
-    # Create an Image object from an Image
-    colorImage  = Image.open("./glasses.jpeg")
-    # Rotate it by 90 degrees
-    transposed  = colorImage.transpose(Image.ROTATE_90)
-    # Display the Original Image
-    colorImage.show() 
-    # Display the Image rotated by 90 degrees
-    transposed.show()
+    for filename in os.listdir(directory):
+        if filename.endswith(".jpg"):
+            colorImage = Image.open(os.path.join(directory, filename))
+            colorImage = colorImage.transpose(Image.ROTATE_90)
+            colorImage = colorImage.transpose(Image.ROTATE_90)
+            colorImage.save(os.path.join(directory, filename))
+            continue
+        else:
+            continue
+
