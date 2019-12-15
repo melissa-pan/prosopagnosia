@@ -37,8 +37,9 @@ import sys, select
 import shutil
 import socket
 
-import build_index
-import upload_file
+from build_index import build_index
+from connect_fs import upload_file
+from connect_fs import download_file
 
 #------------------------------------------------------------------------------
 # Constants / Global Declaration
@@ -55,13 +56,13 @@ PYTTSX3_OUTPUT_AUDIO = not CV_SHOW_IMAGE_FLAG
 # Connection to eye tracker
 SINGLE_DETACTION = True
 fixation = (0, 0)
-HOST = '127.0.0.1'
-PORT = ''
-EYE_SOCKET = None
+HOST = '192.168.8.3'
+PORT = 50001
+EYE_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Default path for adding new annotation file
 ANNOTATION_PATH = "./known_annotation"
-NUMANNOTATION = 2
+NUMANNOTATION = 1
 
 
 # Variables for adding unknown person
@@ -75,13 +76,14 @@ KNOWN_FACE_NAMES = []
 unknown_ppl_counters = {}
 
 # Determine console or pi
-WITHMONITOR = False
+WITHMONITOR = True
 
 #------------------------------------------------------------------------------
 # Environment Setup
 #------------------------------------------------------------------------------
 # Camera source - Get a reference to webcam #0 (the default one)
-video_capture = cv2.VideoCapture(0)
+video_capture = cv2.VideoCapture("http://192.168.8.2:5000/stream/video.mjpeg")
+#video_capture = cv2.VideoCapture(0)
 
 # Audio source - Initiate speech engine
 speech_engn = pyttsx3.init()
@@ -236,8 +238,8 @@ def FaceRecognitionWebcam():
         ret, frame = video_capture.read()
 
         # Resize frame of video to 1/2 size for faster face recognition processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
-
+        #small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+        small_frame = frame
         # Convert the image from BGR color (which OpenCV uses) to RGB color 
         # (which face_recognition uses)
         rgb_small_frame = small_frame[:, :, ::-1]
@@ -248,22 +250,27 @@ def FaceRecognitionWebcam():
         if process_this_frame:
             # Find all the faces and face encodings in the current frame of video
             face_locations = face_recognition.face_locations(rgb_small_frame)
-
+            EyePosition()
+            
             if SINGLE_DETACTION:
                 if len(face_locations) > 1:
-                    EyePosition()
+                    print("debug1")
                     index = getFaceIndex(face_locations)
                     face_encodings = face_recognition.face_encodings(rgb_small_frame, [face_locations[index]])
                 else:
+                    print("debug2")
                     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+                    print(face_encodings)
 
             face_names = []
             for face_encoding in face_encodings:
+                print("debug3")
                 # See if the face is a match for the known face(s)
                 matches = face_recognition.compare_faces(KNOWN_FACE_ENCODINGS, face_encoding)
                 name = "Unknown"
 
                 if True in matches:
+                    print("debug4")
                     # If a match was found in KNOWN_FACE_ENCODINGS, just use the first one.
                     # first_match_index = matches.index(True)
                     # name = KNOWN_FACE_NAMES[first_match_index]
@@ -650,18 +657,40 @@ def RemoveUnknownInDB():
 #------------------------------------------------------------------------------
 # Connection to Eye Tracker
 #------------------------------------------------------------------------------
-def SetupEyeTracker():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        EYE_SOCKET = s
+
 
 def EyePosition():
+    # pass
+    try:
+        global EYE_SOCKET
+        data = EYE_SOCKET.recv(1024)
+        print('Received', repr(data))
+        text = data.decode("utf-8") 
+        print(text)
+        coord = [int(n) for n in text.split()]
+        print(coord)
+        fixation = (coord[0], coord[1]) 
+        return fixation
+    except:
+        pass
+
+    
+
+def SetupEyeTracker():
+    global EYE_SOCKET
+    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    #     s.connect((HOST, PORT))
+    #     EYE_SOCKET = s
+
+    EYE_SOCKET.connect((HOST, PORT))
+
     data = EYE_SOCKET.recv(1024)
     print('Received', repr(data))
-    coord = [int(EYE_SOCKET) for EYE_SOCKET in str.split() if EYE_SOCKET.isdigit()]
+    text = data.decode("utf-8") 
+    print(text)
+    coord = [int(n) for n in text.split()]
+    print(coord)
     fixation = (coord[0], coord[1])
-
-    return fixation
 #------------------------------------------------------------------------------
 # Run Program
 #------------------------------------------------------------------------------
@@ -680,8 +709,8 @@ if __name__ == "__main__":
         #         fixation = (coord[0], coord[1])  
         SetupEyeTracker()
         SetupSpeechEngine()
-        download_file()
-        RemoveUnknownInDB()
+        # download_file()
+        #RemoveUnknownInDB()
         FaceRecognitionWebcam()
         GeneralCleanup()
     except KeyboardInterrupt:
