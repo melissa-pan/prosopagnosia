@@ -709,6 +709,7 @@ if __name__ == "__main__":
         #         fixation = (coord[0], coord[1])  
         SetupEyeTracker()
         SetupSpeechEngine()
+        # rotate image
         # download_file()
         #RemoveUnknownInDB()
         FaceRecognitionWebcam()
@@ -718,6 +719,7 @@ if __name__ == "__main__":
             ConsoleSaveUnknownFaces()
 
         MoveCacheToDB()
+        # ******rotate image
         build_index()
         upload_file()
     except Exception as e:
